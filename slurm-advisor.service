@@ -1,0 +1,16 @@
+[Unit]
+Description=OOD Slurm Advisor
+After=network.target
+
+[Service]
+Type=simple
+User=slurm-advisor
+Group=slurm-advisor
+WorkingDirectory=/opt/slurm-advisor
+ExecStart=/opt/slurm-advisor/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8767 --root-path /slurm-advisor
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

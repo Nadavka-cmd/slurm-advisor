@@ -1,0 +1,39 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "institutional-ip"
+description = "Real cluster IP address"
+regex = '''132\.72\.105\.\d+'''
+tags = ["ip", "network"]
+
+[[rules]]
+id = "institutional-hostname"
+description = "Real institutional hostname"
+regex = '''(bgu\.ac\.il|auth\.ad\.bgu|ece-hpc\.bgu)'''
+tags = ["hostname", "network"]
+
+[[rules]]
+id = "real-ad-server"
+description = "Real AD/LDAP server"
+regex = '''auth\.ad\.bgu'''
+tags = ["ldap", "ad"]
+
+[[rules]]
+id = "real-username"
+description = "Known real admin usernames"
+regex = '''\b(kamanad|rulevich|profadmin)\b'''
+tags = ["username"]
+
+[[rules]]
+id = "real-email"
+description = "Real institutional email"
+regex = '''[\w\.\-]+@(bgu\.ac\.il)'''
+tags = ["email"]
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''.gitleaks.toml''',
+  '''docs/setup.md''',
+]

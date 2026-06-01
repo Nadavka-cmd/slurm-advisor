@@ -1,0 +1,87 @@
+# Slurm Advisor — partition configuration
+# Edit this file when partitions are added, removed, or reconfigured.
+# All CPU/mem limits come from job_submit.lua policy.
+partitions:
+  shared_a6000:
+    vram_gb: 48
+    tier: high_vram          # high_vram | moderate | low
+    rec_cpu: 48
+    max_cpu: 48
+    rec_mem_gb: 120
+    max_mem_gb: 120
+    max_gpu: 4
+    notes: "Highest VRAM on cluster. Reserve for jobs needing >24 GB."
+  shared_a5000:
+    vram_gb: 24
+    tier: moderate
+    rec_cpu: 8
+    max_cpu: 8
+    rec_mem_gb: 56
+    max_mem_gb: 60
+    max_gpu: 4
+    notes: "Best default for medium workloads. Multiple nodes, less contended."
+  shared_rtx6000:
+    vram_gb: 24
+    tier: moderate
+    rec_cpu: 40
+    max_cpu: 40
+    rec_mem_gb: 120
+    max_mem_gb: 240
+    max_gpu: 2
+    notes: "High CPU/mem ceiling. Good fallback if A5000 queue is long."
+  shared_3090:
+    vram_gb: 24
+    tier: moderate
+    rec_cpu: 16
+    max_cpu: 16
+    rec_mem_gb: 56
+    max_mem_gb: 60
+    max_gpu: 1
+    notes: "Single node, heavily contended. Prefer A5000 when available."
+  shared_titan_rtx:
+    vram_gb: 24
+    tier: moderate
+    rec_cpu: 8
+    max_cpu: 8
+    rec_mem_gb: 26
+    max_mem_gb: 30
+    max_gpu: 2
+    notes: "Older generation. Suitable for moderate workloads."
+  shared_1080ti:
+    vram_gb: 11
+    tier: low
+    rec_cpu: 10
+    max_cpu: 10
+    rec_mem_gb: 28
+    max_mem_gb: 60
+    max_gpu: 2
+    notes: "Older generation. Fine for small models and debugging."
+  shared:
+    vram_gb: 11
+    tier: low
+    rec_cpu: 8
+    max_cpu: 28
+    rec_mem_gb: 28
+    max_mem_gb: 120
+    max_gpu: 4
+    notes: "Generic shared partition."
+  course:
+    vram_gb: 24
+    tier: moderate
+    rec_cpu: 8
+    max_cpu: 8
+    rec_mem_gb: 29
+    max_mem_gb: 29
+    max_gpu: 2
+    notes: "Course partition. Use for all coursework unless instructed otherwise."
+# Efficiency thresholds
+efficiency:
+  flag_threshold_pct: 30    # GPU util below this = flagged
+  days_lookback: 15
+  admin_group: hpc_admins   # AD group with admin access to cluster-wide views
+# Pressure labels (pending job count thresholds)
+pressure:
+  low_max: 0
+  medium_max: 3
+  high_max: 8
+  # > high_max = Very High

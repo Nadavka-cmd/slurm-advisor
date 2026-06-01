@@ -1,0 +1,7 @@
+---
+name: Slurm Advisor
+description: Job guidance, partition recommendations, and efficiency analysis for HPC users
+icon: fa://chart-bar
+category: Tools
+subcategory: HPC
+url: /slurm-advisor/
