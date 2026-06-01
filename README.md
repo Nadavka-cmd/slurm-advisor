@@ -19,6 +19,9 @@ A web-based job advisor for HPC clusters running Slurm and Open OnDemand. Helps 
 
 ![Efficiency](docs/screenshots/slurmadvisor_gseff.png)
 
+**Pending Job Explainer** — Click any pending job to get a plain-English explanation of why it's waiting and exactly what to do about it.
+
+![Pending Why](docs/screenshots/slurmadvisor_why.png)
 ## Stack
 
 - **Backend**: FastAPI + uvicorn
