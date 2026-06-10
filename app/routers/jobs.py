@@ -155,7 +155,7 @@ async def pending_reason(job_id: str, request: Request):
         out = run([
             f"{SLURM_BIN}/squeue",
             "--job", job_id,
-            "--Format", "JobID,State,Reason,Partition,tres-per-node,TimeLimit",
+            "--Format", "JobID,State,Reason,Partition,QOS,tres-per-node,TimeLimit",
             "--noheader",
         ])
     except RuntimeError as e:
@@ -185,6 +185,19 @@ async def pending_reason(job_id: str, request: Request):
 
     raw_reason = parts[2] if len(parts) > 2 else "Unknown"
     explained  = _explain_reason(raw_reason)
+
+    if raw_reason == "QOSMaxGRESPerUser":
+        qos = parts[4] if len(parts) > 4 else None
+        requested = _job_requested_gpus(parts[0])
+        in_use    = _user_running_gpu_total(user)
+        limit     = _qos_gpu_limit(qos) if qos else None
+        if qos and requested is not None and limit is not None:
+            total = in_use + requested
+            explained["explanation"] = (
+                f"You're at your QoS GPU limit: {in_use} running + {requested} requested "
+                f"= {total}, limit is {limit}."
+            )
+
     return {
         "job_id":      parts[0],
         "state":       parts[1],
@@ -220,6 +233,70 @@ def _parse_gpus_from_tres(alloc_tres: str) -> str:
     return "0"
 
 
+def _job_requested_gpus(job_id: str):
+    """Get requested GPU count for a job from scontrol ReqTRES."""
+    try:
+        out = run([f"{SLURM_BIN}/scontrol", "show", "job", job_id])
+    except RuntimeError:
+        return None
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("ReqTRES="):
+            for part in line[len("ReqTRES="):].split(","):
+                if "gpu" in part.lower():
+                    kv = part.split("=")
+                    if len(kv) == 2 and kv[1].isdigit():
+                        return int(kv[1])
+    return None
+
+
+def _user_running_gpu_total(user: str) -> int:
+    """Sum GPU counts across this user's currently running jobs (via sacct)."""
+    try:
+        out = run([
+            f"{SLURM_BIN}/sacct",
+            "-u", user,
+            "-s", "RUNNING",
+            "--format=JobID,AllocTRES",
+            "--noheader",
+            "-P",
+        ])
+    except RuntimeError:
+        return 0
+    total = 0
+    for line in out.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("|")
+        if len(parts) < 2 or "." in parts[0]:
+            continue
+        try:
+            total += int(_parse_gpus_from_tres(parts[1]))
+        except ValueError:
+            pass
+    return total
+
+
+def _qos_gpu_limit(qos: str):
+    """Get MaxTRESPerUser GPU limit for a QoS via sacctmgr."""
+    try:
+        out = run([
+            f"{SLURM_BIN}/sacctmgr",
+            "show", "qos", qos,
+            "format=MaxTRESPU%30",
+            "--noheader", "--parsable2",
+        ])
+    except RuntimeError:
+        return None
+    for part in out.strip().split(","):
+        if "gpu" in part.lower():
+            kv = part.split("=")
+            if len(kv) == 2 and kv[1].isdigit():
+                return int(kv[1])
+    return None
+
+
 # Each entry: (explanation, suggestion, fix_command or None)
 _REASON_MAP = {
     "Resources": (
@@ -238,8 +315,13 @@ _REASON_MAP = {
         "Reduce your --time request to 24 hours or less and resubmit.",
         "#SBATCH --time=24:00:00",
     ),
+    "QOSMaxGRESPerJob": (
+        "Your job requested more GPUs than your account allows per job.",
+        "Try resubmitting with fewer GPUs — start with 1 and scale up only if needed.",
+        "#SBATCH --gres=gpu:1",
+    ),
     "QOSMaxGRESPerUser": (
-        "You have reached the maximum number of GPUs allowed simultaneously under your QoS (2 GPUs).",
+        "You have reached the maximum number of GPUs allowed simultaneously under your QoS.",
         "Wait for one of your running GPU jobs to finish before submitting more.",
         None,
     ),
