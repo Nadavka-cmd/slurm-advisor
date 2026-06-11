@@ -330,6 +330,41 @@ _REASON_MAP = {
         "Wait for one of your running jobs to finish before submitting more.",
         None,
     ),
+    "QOSMaxSubmitJobPerUserLimit": (
+        "You've reached the maximum number of jobs (running + pending) you can have queued at once.",
+        "Cancel some pending jobs, or wait for running jobs to finish before submitting more.",
+        None,
+    ),
+    "QOSGrpGRES": (
+        "All GPUs allocated to this QoS/partition are currently in use by all users combined.",
+        "This is normal under heavy load \u2014 your job will start once a GPU frees up. Try a less busy partition if available.",
+        None,
+    ),
+    "AssocGrpGRES": (
+        "Your account/lab has reached its shared GPU limit across all currently running jobs.",
+        "Wait for one of your group's running jobs to finish before submitting more.",
+        None,
+    ),
+    "InvalidAccount": (
+        "The account specified for this job doesn't exist or you're not a member of it.",
+        "Check your --account value and correct it in your submission script.",
+        "#SBATCH --account=<your_account>",
+    ),
+    "InvalidQOS": (
+        "The QoS specified for this job isn't valid for your account.",
+        "Check the QoS name, or remove --qos to use your account's default.",
+        "#SBATCH --qos=<valid_qos>",
+    ),
+    "DependencyNeverSatisfied": (
+        "This job is waiting on another job that failed, was cancelled, or can never complete.",
+        "Cancel this job and resubmit without the dependency, or fix the job it depends on.",
+        "scancel {job_id}",
+    ),
+    "AssocMaxWallDurationPerJobLimit": (
+        "Your requested runtime exceeds the maximum walltime allowed for your account.",
+        "Reduce your --time request and resubmit.",
+        "#SBATCH --time=24:00:00",
+    ),
     "PartitionTimeLimit": (
         "Your requested walltime exceeds this partition's maximum allowed time.",
         "Reduce --time to fit within the partition limit, or switch to a partition with a longer limit.",
