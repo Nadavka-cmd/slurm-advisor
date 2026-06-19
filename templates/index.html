@@ -1700,7 +1700,7 @@
       </div>
       <span class="logo-title">Slurm Advisor</span>
     </div>
-    <div class="logo-sub">HPC Cluster</div>
+    <div class="logo-sub">ECE HPC Cluster</div>
   </div>
 
   <nav class="sidebar-nav">
@@ -1724,8 +1724,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Efficiency
     </div>
+    <div class="nav-item" data-pane="pane-policy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      AI Policy
+    </div>
     <div class="nav-group-label">Resources</div>
-    <div class="nav-item" onclick="window.open('#','_blank')">
+    <div class="nav-item" onclick="window.open('https://ood-node.example.local/cgi-bin/kb.py','_blank')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Guides
     </div>
@@ -2111,6 +2115,17 @@
     </div>
 
     <!-- ── Partitions ── -->
+    <div class="pane" id="pane-policy">
+      <div style="margin-bottom:24px;">
+        <h2 style="font-size:21.5px;font-weight:700;letter-spacing:-.02em;color:var(--text);margin-bottom:4px;">AI Assistant Policy</h2>
+        <p style="color:var(--muted);font-size:15.5px;">A resource-policy file for AI coding assistants (Claude Code, Cursor, Codex, Gemini CLI) that generate Slurm jobs.</p>
+      </div>
+      <div style="max-width:680px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 24px;">
+        <p style="color:var(--text2);font-size:14.5px;line-height:1.6;margin-bottom:6px;">Download a Markdown policy scoped to <strong>your</strong> partitions. It tells your AI tool which partition to pick and how much to request, and reflects current cluster state.</p>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:18px;">Save it as <code>CLAUDE.md</code> or <code>AGENTS.md</code> in the directory where you run your AI tool. Re-download after cluster or access changes.</p>
+        <button class="btn-primary" onclick="downloadPolicy()">Download cluster_resources.md</button>
+      </div>
+    </div>
     <div class="pane" id="pane-partitions">
 
       <div style="margin-bottom:24px;">
@@ -2295,6 +2310,7 @@
     return _partitionConfig;
   }
   const ROOT = (window.location.pathname.match(/^(\/[^\/]+)\//) || ["",""])[1];
+  function downloadPolicy() { window.open(ROOT + '/api/partitions/policy.md', '_blank'); }
 
   // Cache-busting fetch wrapper
   function apiFetch(url, opts) {
@@ -2339,6 +2355,7 @@
     "pane-advisor":     "Find Best Partition",
     "pane-partitions":  "Partitions",
     "pane-efficiency":  "Efficiency",
+    "pane-policy":      "AI Policy",
   };
 
   function switchPane(paneId) {
@@ -2435,13 +2452,9 @@
         `${best.partition} <span class="best-fit-badge">Best Fit</span>`;
       document.getElementById("hero-why").textContent = "Why we recommend this partition:";
 
-      const vramMap = {
-        "shared_a5000":24,"shared_a6000":48,"shared_rtx6000":24,
-        "shared_3090":24,"shared_titan_rtx":24,"shared_1080ti":11,"shared":11,"course":24
-      };
-      const vram = vramMap[best.partition] || 24;
+      const vram = best.vram_label || "—";
       const tags = [
-        `${vram} GB VRAM`,
+        `${vram} VRAM`,
         `${best.pressure} queue pressure`,
         best.wait_hint !== "—" ? `${best.wait_hint} wait` : "Short wait"
       ];
@@ -2455,7 +2468,7 @@
       const pvEl = document.getElementById("hero-pressure-val");
       pvEl.textContent = best.pressure;
       pvEl.className = "hero-stat-value " + (best.pressure === "Low" ? "green" : best.pressure === "Medium" ? "orange" : "stat-danger");
-      document.getElementById("hero-vram").textContent = `${vram} GB`;
+      document.getElementById("hero-vram").textContent = vram;
       document.getElementById("hero-fit").textContent = best.pressure === "Low" ? "92%" : best.pressure === "Medium" ? "74%" : "55%";
 
     } catch(e) {
@@ -2465,31 +2478,26 @@
 
   // ── Overview: partition strip ─────────────────────────────────────────────
 
-  const PARTITION_VRAM = {
-    "shared_a5000":24,"shared_a6000":48,"shared_rtx6000":24,
-    "shared_3090":24,"shared_titan_rtx":24,"shared_1080ti":11,"shared":11,"course":24
-  };
-
   async function loadPartitionStrip() {
     const el = document.getElementById("overview-partition-strip");
     el.innerHTML = `<div class="empty loading" style="grid-column:1/-1;padding:20px 0;">Loading…</div>`;
     try {
       const res = await apiFetch(`${ROOT}/api/partitions/`);
       const data = await res.json();
-      el.innerHTML = data.partitions.slice(0,6).map(p => {
+      el.innerHTML = data.partitions.map(p => {
         const cls = pressureClass(p.pressure);
-        const vram = PARTITION_VRAM[p.partition] || "—";
+        const vram = p.vram_label || "—";
         return `
           <div class="partition-card" onclick="switchPane('pane-partitions')">
             <div class="partition-card-top">
               <div class="partition-name">${p.partition}</div>
               <div class="pressure-dot ${cls}"></div>
             </div>
-            <div class="partition-pressure-label" style="color:${pressureColor(p.pressure)}">${p.pressure}</div>
+            <div class="partition-pressure-label" style="color:${pressureColor(p.pressure)}">${p.pressure} pressure</div>
             <div class="partition-wait">${p.wait_hint || "—"}</div>
-            <div class="partition-vram">${vram} GB VRAM</div>
+            <div class="partition-vram">${vram} VRAM</div>
             <svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none">
-              <path d="${generateSparkline(cls)}" fill="none" stroke="${pressureColor(p.pressure)}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="${generateSparkline(p.history)}" fill="none" stroke="${pressureColor(p.pressure)}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>`;
       }).join("");
@@ -2498,9 +2506,12 @@
     }
   }
 
-  function generateSparkline(pressure) {
-    const bases = { low:[4,6,5,8,5,4,6,7,5,3,4,6,5,4], medium:[8,12,10,15,12,16,14,12,15,13,14,16,15,14], high:[18,22,20,24,22,26,24,22,26,24,25,27,26,24] };
-    const pts = (bases[pressure] || bases.medium).map((y,i) => `${i*7+2},${30-y}`);
+  function generateSparkline(history) {
+    const data = Array.isArray(history) ? history : [];
+    if (data.length === 0) return "M0,31L100,31";
+    const y = v => (31 - (Math.max(0, Math.min(100, v)) / 100) * 30).toFixed(1);
+    if (data.length === 1) return `M0,${y(data[0])}L100,${y(data[0])}`;
+    const pts = data.map((v, i) => `${((i / (data.length - 1)) * 100).toFixed(1)},${y(v)}`);
     return `M${pts.join("L")}`;
   }
 
@@ -2661,7 +2672,7 @@
       if (!forStrip) {
         const grid = document.getElementById("partitions-grid");
         grid.innerHTML = data.partitions.map(p => {
-          const vram = PARTITION_VRAM[p.partition] || "—";
+          const vram = p.vram_label || "—";
           const cls = pressureClass(p.pressure);
           return `
             <div class="partition-detail-card">
@@ -2679,12 +2690,8 @@
                   <span class="partition-detail-row-value">${p.wait_hint || "—"}</span>
                 </div>
                 <div class="partition-detail-row">
-                  <span class="partition-detail-row-label">Pending Jobs</span>
-                  <span class="partition-detail-row-value">${p.pending_jobs}</span>
-                </div>
-                <div class="partition-detail-row">
                   <span class="partition-detail-row-label">VRAM</span>
-                  <span class="partition-detail-row-value">${vram} GB</span>
+                  <span class="partition-detail-row-value">${vram}</span>
                 </div>
               </div>
             </div>`;
@@ -2852,7 +2859,7 @@
               <span style="font-size:12.5px;color:${PRESSURE_COLOR[p.pressure]||'var(--muted)'};">● ${p.pressure}</span>
               <span style="font-size:12px;color:var(--muted);font-family:var(--mono);">${p.wait_hint}</span>
             </div>
-            <div style="font-size:12px;color:var(--dim);margin-top:3px;">${p.vram_gb} GB VRAM</div>
+            <div style="font-size:12px;color:var(--dim);margin-top:3px;">${p.vram_label || "—"} VRAM</div>
           </div>`).join("");
     } catch(e) {
       el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Unavailable</div>`;

@@ -2,38 +2,26 @@
 useDefault = true
 
 [[rules]]
-id = "institutional-ip"
-description = "Real cluster IP address"
-regex = '''132\.72\.105\.\d+'''
-tags = ["ip", "network"]
+id = "bgu-internal-ip"
+description = "BGU internal IP (132.72.x.x)"
+regex = '''132\.72\.\d{1,3}\.\d{1,3}'''
 
 [[rules]]
-id = "institutional-hostname"
-description = "Real institutional hostname"
-regex = '''(bgu\.ac\.il|auth\.ad\.bgu|ece-hpc\.bgu)'''
-tags = ["hostname", "network"]
+id = "bgu-domain"
+description = "BGU domain name"
+regex = '''[A-Za-z0-9._-]*bgu\.ac\.il'''
 
 [[rules]]
-id = "real-ad-server"
-description = "Real AD/LDAP server"
-regex = '''auth\.ad\.bgu'''
-tags = ["ldap", "ad"]
+id = "cluster-hostnames"
+description = "Cluster hostnames"
+regex = '''\b(hpc-master\d*|ece-hpc|hpc-monitor\d*|hpc-node\d+|hpc-adrian\d*|hpc-apps\d*|hpc-vilenchik|hpc-permuter\d*|truenas\d*|ee-ansible)\b'''
 
 [[rules]]
-id = "real-username"
-description = "Known real admin usernames"
-regex = '''\b(kamanad|rulevich|profadmin)\b'''
-tags = ["username"]
+id = "service-account"
+description = "Service account username"
+regex = '''\bprofadmin\b'''
 
 [[rules]]
-id = "real-email"
-description = "Real institutional email"
-regex = '''[\w\.\-]+@(bgu\.ac\.il)'''
-tags = ["email"]
-
-[allowlist]
-description = "Global allowlist"
-paths = [
-  '''.gitleaks.toml''',
-  '''docs/setup.md''',
-]
+id = "personal-usernames"
+description = "Cluster usernames / personal identifiers"
+regex = '''\b(rulevich|kamanad|vill?enchik|adrian)\b'''
